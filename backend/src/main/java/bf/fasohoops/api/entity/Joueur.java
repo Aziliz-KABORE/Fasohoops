@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.Period;
 
 @Entity
 @Table(name = "joueurs")
@@ -21,6 +22,15 @@ public class Joueur extends AbstractUser {
     private LocalDate dateNaissance;
     private String niveau;
     private String clubActuel;
-    
-    // Relation avec Statistique, Inscription, Candidature à ajouter dans le module 3
+    private String licenceNumero;
+
+    public int getAge() {
+        if (dateNaissance == null) return 18;
+        return Period.between(dateNaissance, LocalDate.now()).getYears();
+    }
+
+    public boolean isMineur() {
+        return getAge() < 18;
+    }
 }
+

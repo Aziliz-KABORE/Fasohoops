@@ -7,18 +7,15 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "clubs")
+@Table(name = "entraineurs")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-public class Club extends AbstractUser {
+public class Entraineur extends AbstractUser {
 
-    private String nomStructure;
-    private String ville;
-    private String historique;
-    private String besoinsRecrutement;
+    private String cv;
+    private String experiences;
+    private String formations;
     private String licenceNumero;
     private String statutValidation = "EN_ATTENTE"; // EN_ATTENTE, VALIDE, REFUSE
-    private String equipesEtCategories = "Senior, U20, U18, U15";
 }
-
