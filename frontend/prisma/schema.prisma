@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          Role      @default(JOUEUR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  joueurProfile   JoueurProfile?
+  clubProfile     ClubProfile?
+  entraineurProfile EntraineurProfile?
+  agentProfile    AgentProfile?
+
+  messagesSent    Message[] @relation("SentMessages")
+  messagesReceived Message[] @relation("ReceivedMessages")
+  accounts        Account[]
+  sessions        Session[]
+}
+
+enum Role {
+  JOUEUR
+  CLUB
+  ENTRAINEUR
+  AGENT
+  FEBBA
+  MINISTERE
+  PARTENAIRE
+  ADMIN
+}
+
+model JoueurProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poste         String?
+  taille        Float?
+  poids         Float?
+  dateNaissance DateTime?
+  niveau        String?
+  clubActuel    String?
+
+  statistiques  Statistique[]
+  candidatures  Candidature[]
+  inscriptions  Inscription[]
+}
+
+model ClubProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nomStructure       String
+  ville              String
+  historique         String?
+  besoinsRecrutement String?
+  licenceNumero      String?
+  statutValidation   String   @default("EN_ATTENTE") // EN_ATTENTE, VALIDE, REFUSE
+  equipesCategories  String?  @default("Senior, U20, U18, U15")
+
+  offres             Offre[]
+  evenementsOrganises Evenement[]
+}
+
+model EntraineurProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cv               String?
+  experiences      String?
+  formations       String?
+  licenceNumero    String?
+  statutValidation String   @default("EN_ATTENTE") // EN_ATTENTE, VALIDE, REFUSE
+}
+
+model AgentProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cv            String?
+  joueursRepresentes String?
+  licenceNumero String?
+  statutValidation String @default("VALIDE")
+}
+
+model Licence {
+  id             String   @id @default(cuid())
+  numeroLicence  String   @unique
+  nomTitulaire   String
+  roleTitulaire  String
+  clubAffiliation String?
+  valideJusquA   DateTime
+  statut         String   @default("ACTIVE") // ACTIVE, EXPIREE, SUSPENDUE
+}
+
+
+model Statistique {
+  id            String   @id @default(cuid())
+  joueurId      String
+  joueur        JoueurProfile @relation(fields: [joueurId], references: [id], onDelete: Cascade)
+  match         String?
+  saison        String?
+  points        Int      @default(0)
+  rebonds       Int      @default(0)
+  passes        Int      @default(0)
+  contres       Int      @default(0)
+}
+
+model Evenement {
+  id            String   @id @default(cuid())
+  organisateurId String
+  organisateur  ClubProfile @relation(fields: [organisateurId], references: [id])
+  titre         String
+  type          String
+  dateDebut     DateTime
+  dateFin       DateTime
+  lieu          String
+
+  inscriptions  Inscription[]
+}
+
+model Inscription {
+  id            String   @id @default(cuid())
+  joueurId      String
+  joueur        JoueurProfile @relation(fields: [joueurId], references: [id], onDelete: Cascade)
+  evenementId   String
+  evenement     Evenement     @relation(fields: [evenementId], references: [id], onDelete: Cascade)
+  dateInscription DateTime @default(now())
+  statut        String   @default("EN_ATTENTE") // EN_ATTENTE, ACCEPTE, REFUSE
+}
+
+model Offre {
+  id              String   @id @default(cuid())
+  clubId          String
+  club            ClubProfile @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  posteRecherche  String
+  niveau          String
+  description     String
+  dateExpiration  DateTime
+
+  candidatures    Candidature[]
+}
+
+model Candidature {
+  id              String   @id @default(cuid())
+  joueurId        String
+  joueur          JoueurProfile @relation(fields: [joueurId], references: [id], onDelete: Cascade)
+  offreId         String
+  offre           Offre         @relation(fields: [offreId], references: [id], onDelete: Cascade)
+  dateCandidature DateTime @default(now())
+  statut          String   @default("EN_ATTENTE") // EN_ATTENTE, ACCEPTE, REFUSE
+}
+
+model Message {
+  id            String   @id @default(cuid())
+  contenu       String
+  dateEnvoi     DateTime @default(now())
+  lu            Boolean  @default(false)
+  
+  expediteurId  String
+  expediteur    User     @relation("SentMessages", fields: [expediteurId], references: [id], onDelete: Cascade)
+  
+  destinataireId String
+  destinataire   User    @relation("ReceivedMessages", fields: [destinataireId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth models
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
