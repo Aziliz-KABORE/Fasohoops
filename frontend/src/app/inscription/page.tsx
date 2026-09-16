@@ -128,8 +128,13 @@ export default function InscriptionPage() {
         </div>
 
         {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-xl mb-6">
-            {error}
+          <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-xl mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span>{error}</span>
+            {error.includes("déjà utilisé") && (
+              <a href="/connexion" className="px-4 py-1.5 bg-orange-500 text-white font-bold text-xs rounded-lg hover:bg-orange-600 whitespace-nowrap text-center">
+                Se connecter →
+              </a>
+            )}
           </div>
         )}
 

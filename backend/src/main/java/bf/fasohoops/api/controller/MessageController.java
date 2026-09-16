@@ -33,14 +33,39 @@ public class MessageController {
             if (user != null) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", user.getId());
-                map.put("nom", user.getEmail()); // Simplifié pour le moment, on ajustera avec le vrai nom
-                map.put("role", user.getRole());
+                String fullName = ((user.getPrenom() != null ? user.getPrenom() : "") + " " + (user.getNom() != null ? user.getNom() : "")).trim();
+                if (fullName.isBlank()) fullName = user.getEmail();
+                map.put("nom", fullName);
+                map.put("email", user.getEmail());
+                map.put("role", user.getRole() != null ? user.getRole().name() : "JOUEUR");
+                map.put("initiale", fullName.length() > 0 ? fullName.substring(0, 1).toUpperCase() : "?");
                 return map;
             }
             return null;
         }).filter(c -> c != null).collect(Collectors.toList());
 
         return ResponseEntity.ok(contacts);
+    }
+
+    // Récupérer l'annuaire des membres pour initier une nouvelle conversation
+    @GetMapping("/contacts-disponibles")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableContacts(@RequestParam(required = false) UUID currentUserId) {
+        List<AbstractUser> allUsers = userRepository.findAll();
+        List<Map<String, Object>> directory = allUsers.stream()
+            .filter(u -> currentUserId == null || !u.getId().equals(currentUserId))
+            .map(u -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", u.getId());
+                String fullName = ((u.getPrenom() != null ? u.getPrenom() : "") + " " + (u.getNom() != null ? u.getNom() : "")).trim();
+                if (fullName.isBlank()) fullName = u.getEmail();
+                map.put("nom", fullName);
+                map.put("email", u.getEmail());
+                map.put("role", u.getRole() != null ? u.getRole().name() : "JOUEUR");
+                map.put("initiale", fullName.length() > 0 ? fullName.substring(0, 1).toUpperCase() : "?");
+                return map;
+            })
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(directory);
     }
 
     // Récupérer une conversation entre deux utilisateurs

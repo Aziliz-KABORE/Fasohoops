@@ -1,1 +1,26 @@
+# Environment
 .env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+backend/target/
+*.tsbuildinfo
+
+# Local Databases
+backend/data/*.db
+backend/data/*.trace.db
+backend/data/*.mv.db
+frontend/dev.db*
+frontend/prisma/*.db*
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db

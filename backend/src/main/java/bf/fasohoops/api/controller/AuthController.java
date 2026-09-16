@@ -89,6 +89,10 @@ public class AuthController {
             Entraineur entraineur = new Entraineur();
             entraineur.setStatutValidation("VALIDE");
             user = entraineur;
+        } else if (role == Role.ADMIN) {
+            Admin admin = new Admin();
+            admin.setPoste("Administrateur");
+            user = admin;
         } else {
             Joueur joueur = new Joueur();
             joueur.setNiveau("Senior");
@@ -172,6 +176,29 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", "Email ou mot de passe incorrect"));
         }
+    }
+
+    // ═══════════════════════════════════════════
+    // GET /api/auth/user?email=...
+    // ═══════════════════════════════════════════
+    @GetMapping("/user")
+    public ResponseEntity<?> getUserByEmail(@RequestParam String email) {
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email requis"));
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+        return userRepository.findByEmail(normalizedEmail)
+            .map(user -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", user.getId() != null ? user.getId().toString() : "");
+                map.put("email", user.getEmail());
+                map.put("nom", user.getNom());
+                map.put("prenom", user.getPrenom());
+                map.put("name", (user.getPrenom() + " " + user.getNom()).trim());
+                map.put("role", user.getRole() != null ? user.getRole().name() : "JOUEUR");
+                return ResponseEntity.ok(map);
+            })
+            .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Utilisateur non trouvé")));
     }
 
     // ═══════════════════════════════════════════

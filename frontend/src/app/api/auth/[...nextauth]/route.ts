@@ -74,7 +74,27 @@ const handler = NextAuth({
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         try {
-          // Enregistrer les utilisateurs Google dans Spring Boot
+          // Vérifier d'abord si l'utilisateur existe déjà dans Spring Boot
+          const checkRes = await fetch(`${BACKEND_URL}/api/auth/user?email=${encodeURIComponent(user.email || "")}`);
+          if (checkRes.ok) {
+            const existing = await checkRes.json();
+            (user as any).role = existing.role;
+            (user as any).id = existing.id;
+            console.log("✅ Compte Google existant détecté avec rôle:", existing.role);
+            return true;
+          }
+
+          // Sinon récupérer le rôle sélectionné sur la page d'inscription
+          let desiredRole = "JOUEUR";
+          try {
+            const { cookies } = await import("next/headers");
+            const cookieStore = await cookies();
+            desiredRole = cookieStore.get("oauth_role")?.value || "JOUEUR";
+          } catch {
+            // fallback
+          }
+
+          // Enregistrer les nouveaux utilisateurs Google dans Spring Boot
           const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -82,12 +102,14 @@ const handler = NextAuth({
               email: user.email,
               password: `GOOGLE_${Date.now()}_${Math.random().toString(36)}`,
               name: user.name,
-              role: "JOUEUR",
+              role: desiredRole,
             }),
           });
-          // Si 400 = email déjà existant, c'est normal
           if (res.ok) {
-            console.log("✅ Compte Google créé dans Spring Boot:", user.email);
+            const data = await res.json();
+            (user as any).role = data.user?.role || desiredRole;
+            (user as any).id = data.user?.id;
+            console.log("✅ Compte Google créé dans Spring Boot avec rôle:", (user as any).role);
           }
         } catch (err) {
           console.error("Erreur signIn Google -> Spring Boot:", err);
@@ -101,6 +123,20 @@ const handler = NextAuth({
         token.id = user.id;
         token.role = (user as any).role;
         token.backendToken = (user as any).backendToken;
+      }
+
+      // Si le rôle est manquant ou générique, synchroniser depuis le backend
+      if ((!token.role || token.role === "JOUEUR") && token.email) {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/auth/user?email=${encodeURIComponent(token.email)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.role) token.role = data.role;
+            if (data.id) token.id = data.id;
+          }
+        } catch (e) {
+          console.error("Erreur sync rôle NextAuth:", e);
+        }
       }
       return token;
     },
